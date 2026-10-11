@@ -18,6 +18,8 @@ Quét/tải ảnh mã **VietQR (EMVCo/NAPAS)**, bóc tách thông tin tài kho�
 
 Bật GitHub Pages để có link dùng trên điện thoại: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/ (root)`** → mở `https://nclong1976.github.io/QR/web/`.
 
+Trên điện thoại có thể "Thêm vào Màn hình chính": app mở toàn màn hình với biểu tượng mã QR dẫn tới link ứng dụng (`web/manifest.webmanifest`, `web/icons/`); trên iPhone, sau khi quét mã của bạn, biểu tượng dùng chính mã QR đó.
+
 Sửa mã nguồn trong `web/src/` rồi chạy `python web/build.py` để ghép lại `web/index.html`.
 Thư viện đọc/tạo mã QR (`web/vendor/`) được nhúng thẳng vào `index.html`, nên app quét được cả khi CDN bị chặn; bộ đọc nâng cao ZXing chỉ tải khi ảnh khó đọc.
 Khi mã QR không chứa tên chủ tài khoản, app đọc tên in trên ảnh bằng Tesseract.js (miễn phí, chạy trong trình duyệt, chỉ tải khi cần) và nhớ tên theo số tài khoản trên thiết bị. Tên này không do ngân hàng xác thực nên luôn gắn nhãn "chưa xác thực".
