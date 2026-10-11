@@ -1,0 +1,75 @@
+{
+  "qr": {
+    "box": [
+      60,
+      150,
+      300,
+      300
+    ],
+    "clear": "fill",
+    "quiet_zone": 2,
+    "fg": "#000000",
+    "bg": "#FFFFFF"
+  },
+  "fields": [
+    {
+      "key": "bank_short_name",
+      "box": [
+        400,
+        170,
+        360,
+        40
+      ],
+      "clear": "fill",
+      "font": "bold",
+      "size": 30,
+      "color": "#0B3D91",
+      "align": "left"
+    },
+    {
+      "key": "account_name",
+      "box": [
+        400,
+        230,
+        360,
+        44
+      ],
+      "clear": "fill",
+      "font": "bold",
+      "size": 32,
+      "color": "#111111",
+      "align": "left",
+      "upper": true
+    },
+    {
+      "key": "account_number",
+      "box": [
+        400,
+        290,
+        360,
+        40
+      ],
+      "clear": "fill",
+      "font": "regular",
+      "size": 30,
+      "color": "#111111",
+      "align": "left",
+      "prefix": "STK: "
+    },
+    {
+      "key": "content",
+      "box": [
+        400,
+        350,
+        360,
+        36
+      ],
+      "clear": "fill",
+      "font": "regular",
+      "size": 24,
+      "color": "#444444",
+      "align": "left",
+      "prefix": "Nội dung: "
+    }
+  ]
+}

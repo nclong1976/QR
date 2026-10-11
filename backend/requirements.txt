@@ -1,0 +1,10 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+opencv-python-headless>=4.9
+pillow>=10.0
+qrcode>=7.4
+numpy>=1.26
+# dev
+pytest>=8.0
+httpx>=0.27
