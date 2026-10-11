@@ -32,16 +32,86 @@
   }
 
   /* ---------- QR decode ---------- */
-  function decodeFrom(img) {
-    var tries = [1400, 900, 2000, 600], c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
+  // jsQR, đồng bộ. deep = thử thêm các vùng cắt (mã nhỏ trong ảnh chụp lớn).
+  function decodeFrom(img, deep) {
+    var c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
     var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
-    for (var i = 0; i < tries.length; i++) {
-      var k = Math.min(1, tries[i] / Math.max(W, H));
-      c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
-      x.drawImage(img, 0, 0, c.width, c.height);
+    function attempt(sx, sy, sw, sh, max) {
+      var k = Math.min(1, max / Math.max(sw, sh));
+      c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
+      x.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
       var d = x.getImageData(0, 0, c.width, c.height);
       var r = window.jsQR && jsQR(d.data, c.width, c.height, { inversionAttempts: 'attemptBoth' });
-      if (r && r.data) return { data: r.data, loc: r.location, k: k };
+      if (!r || !r.data) return null;
+      var loc = {};
+      Object.keys(r.location).forEach(function (n) { var p = r.location[n]; loc[n] = { x: sx + p.x / k, y: sy + p.y / k }; });
+      return { data: r.data, loc: loc, k: 1 };
+    }
+    var tries = [1400, 900, 2000, 600], i, r;
+    for (i = 0; i < tries.length; i++) if ((r = attempt(0, 0, W, H, tries[i]))) return r;
+    if (!deep) return null;
+    var f = [0.6, 0.45], j, a, b;
+    for (j = 0; j < f.length; j++) {
+      var cw = W * f[j], ch = H * f[j], steps = f[j] > 0.5 ? 2 : 3;
+      if ((r = attempt((W - cw) / 2, (H - ch) / 2, cw, ch, 1000))) return r;
+      for (a = 0; a < steps; a++) for (b = 0; b < steps; b++) {
+        if ((r = attempt((W - cw) * a / (steps - 1), (H - ch) * b / (steps - 1), cw, ch, 1000))) return r;
+      }
+    }
+    return null;
+  }
+
+  // ZXing (WebAssembly) chỉ tải khi jsQR không đọc được; mạnh hơn với ảnh chụp mờ, nghiêng, mã kiểu chấm.
+  var ZX_VER = '3.1.3', zxingP = null;
+  function loadZXing() {
+    if (zxingP) return zxingP;
+    var cdns = ['https://cdn.jsdelivr.net/npm/zxing-wasm@' + ZX_VER + '/', 'https://unpkg.com/zxing-wasm@' + ZX_VER + '/'];
+    function tryCdn(i) {
+      if (i >= cdns.length) return Promise.resolve(null);
+      return new Promise(function (res) {
+        var s = document.createElement('script'), done = false;
+        var t = setTimeout(function () { if (!done) { done = true; res(false); } }, 15000);
+        s.src = cdns[i] + 'dist/iife/reader/index.js';
+        s.onload = function () { if (!done) { done = true; clearTimeout(t); res(!!window.ZXingWASM); } };
+        s.onerror = function () { if (!done) { done = true; clearTimeout(t); res(false); } };
+        document.head.appendChild(s);
+      }).then(function (ok) {
+        if (!ok) return tryCdn(i + 1);
+        var base = cdns[i];
+        ZXingWASM.prepareZXingModule({ overrides: { locateFile: function (path, prefix) { return path.slice(-5) === '.wasm' ? base + 'dist/reader/' + path : prefix + path; } } });
+        return ZXingWASM;
+      });
+    }
+    zxingP = tryCdn(0).then(function (z) { if (!z) zxingP = null; return z; });
+    return zxingP;
+  }
+
+  function imageDataOf(img, max) {
+    var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height, k = Math.min(1, max / Math.max(W, H));
+    var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+    var x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, c.width, c.height);
+    return x.getImageData(0, 0, c.width, c.height);
+  }
+
+  // Quét ảnh người dùng tải lên: jsQR → bộ quét của trình duyệt → ZXing. Trả về chuỗi QR hoặc null.
+  async function scanImage(img, onSlow) {
+    var r = decodeFrom(img, true);
+    if (r) return r.data;
+    if ('BarcodeDetector' in window) {
+      try {
+        var det = await new BarcodeDetector({ formats: ['qr_code'] }).detect(img);
+        if (det && det[0] && det[0].rawValue) return det[0].rawValue;
+      } catch (e) {}
+    }
+    if (onSlow) onSlow();
+    var z = await loadZXing();
+    if (!z) return null;
+    var sizes = [2000, 1200, 3000];
+    for (var i = 0; i < sizes.length; i++) {
+      try {
+        var out = await z.readBarcodes(imageDataOf(img, sizes[i]), { formats: ['QRCode'], tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 });
+        if (out && out[0] && out[0].isValid && out[0].text) return out[0].text;
+      } catch (e) {}
     }
     return null;
   }
@@ -65,14 +135,29 @@
 
   async function onQRFile(ev) {
     var f = ev.target.files && ev.target.files[0]; ev.target.value = '';
-    if (!f) return;
+    if (f) await handleQRFile(f);
+  }
+
+  var scanning = false;
+  async function handleQRFile(f) {
+    if (scanning) return;
+    if (f.type && !/^image\//.test(f.type)) { setStatus($('qrStatus'), 'err', 'Tệp này không phải ảnh. Hãy chọn ảnh JPG hoặc PNG có mã QR.'); return; }
+    scanning = true;
     setStatus($('qrStatus'), 'info', 'Đang đọc mã QR…');
+    var url = URL.createObjectURL(f);
     try {
-      var img = await loadImage(URL.createObjectURL(f));
-      var r = decodeFrom(img);
-      if (!r) { setStatus($('qrStatus'), 'err', 'Không tìm thấy mã QR trong ảnh. Hãy chụp gần hơn, đủ sáng và để mã nằm trọn trong khung hình.'); return; }
-      acceptPayload(r.data);
-    } catch (e) { setStatus($('qrStatus'), 'err', 'Không mở được ảnh này. Hãy thử ảnh JPG hoặc PNG khác.'); }
+      var img;
+      try { img = await loadImage(url); }
+      catch (e) {
+        setStatus($('qrStatus'), 'err', /heic|heif/i.test(f.type + f.name)
+          ? 'Trình duyệt này không mở được ảnh HEIC. Hãy chụp màn hình mã QR hoặc đổi ảnh sang JPG rồi thử lại.'
+          : 'Không mở được ảnh này. Hãy thử ảnh JPG hoặc PNG khác.');
+        return;
+      }
+      var data = await scanImage(img, function () { setStatus($('qrStatus'), 'info', 'Đang đọc kỹ hơn (lần đầu cần tải bộ đọc nâng cao)…'); });
+      if (!data) { setStatus($('qrStatus'), 'err', 'Không tìm thấy mã QR trong ảnh. Hãy chụp gần hơn, đủ sáng, để mã nằm trọn và thẳng trong khung hình, hoặc chụp màn hình mã QR.'); return; }
+      acceptPayload(data);
+    } finally { URL.revokeObjectURL(url); scanning = false; }
   }
 
   function renderInfo() {
@@ -427,7 +512,7 @@
   }
 
   function guessLayout(img) {
-    var W = img.naturalWidth, H = img.naturalHeight, r = decodeFrom(img), qb, found = false;
+    var W = img.naturalWidth, H = img.naturalHeight, r = decodeFrom(img, true), qb, found = false;
     if (r) {
       var L = r.loc, xs = [L.topLeftCorner.x, L.topRightCorner.x, L.bottomLeftCorner.x, L.bottomRightCorner.x].map(function (v) { return v / r.k; });
       var ys = [L.topLeftCorner.y, L.topRightCorner.y, L.bottomLeftCorner.y, L.bottomRightCorner.y].map(function (v) { return v / r.k; });
@@ -549,6 +634,19 @@
   $('t2').onclick = function () { setTab(2); };
   $('t3').onclick = function () { setTab(3); };
   $('camIn').onchange = onQRFile; $('galIn').onchange = onQRFile;
+  function imageFrom(list) { for (var i = 0; list && i < list.length; i++) { var it = list[i], f = it.getAsFile ? (it.kind === 'file' ? it.getAsFile() : null) : it; if (f && /^image\//.test(f.type)) return f; } return null; }
+  document.addEventListener('dragover', function (ev) { if (ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], 'Files') >= 0) ev.preventDefault(); });
+  document.addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && imageFrom(ev.dataTransfer.files); if (!f) return;
+    ev.preventDefault();
+    if (S.tab === 2) return;
+    setTab(1); handleQRFile(f);
+  });
+  document.addEventListener('paste', function (ev) {
+    var t = ev.target; if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) return;
+    var f = ev.clipboardData && imageFrom(ev.clipboardData.items); if (!f) return;
+    ev.preventDefault(); setTab(1); handleQRFile(f);
+  });
   $('payloadBtn').onclick = function () { var v = $('payloadIn').value.trim(); if (v) acceptPayload(v); };
   $('nameIn').oninput = function () { S.userName = $('nameIn').value; render(false); };
   $('tplIn').onchange = onTplFile;

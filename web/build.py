@@ -2,6 +2,10 @@
 import sys, pathlib, base64
 src = pathlib.Path(__file__).parent / "src"
 page = (src / "page.html").read_text(encoding="utf-8")
+vendor = pathlib.Path(__file__).parent / "vendor"
+# thư viện được nhúng thẳng vào trang để không phụ thuộc CDN (mạng/trình duyệt trong app có thể chặn)
+page = page.replace("/*VENDOR_JSQR*/", "/* jsQR 1.4.0 - Apache-2.0 - https://github.com/cozmo/jsQR */\n" + (vendor / "jsQR.js").read_text(encoding="utf-8"))
+page = page.replace("/*VENDOR_QRCODE*/", "/* qrcode-generator 1.4.4 - MIT - https://github.com/kazuhikoarase/qrcode-generator */\n" + (vendor / "qrcode.js").read_text(encoding="utf-8"))
 page = page.replace("/*CORE*/", (src / "core.js").read_text(encoding="utf-8"))
 page = page.replace("/*APP*/", (src / "app.js").read_text(encoding="utf-8"))
 tpl = base64.b64encode((src / "template-vinclub.webp").read_bytes()).decode("ascii")
