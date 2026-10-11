@@ -6,7 +6,9 @@
   var ov = $('overlay'), vctx = ov.getContext('2d');
 
   var EXAMPLE = '00020101021238590010A0000007270129000697043701150027040706140960208QRIBFTTA530370454061500005802VN5914TRAN THI HUONG62080804ECUV6304336C';
-  var OLD_EXAMPLE = '00020101021138540010A00000072701240006970436011001234567890208QRIBFTTA53037045802VN5912NGUYEN VAN A62140810THANH TOAN6304';
+  // Ảnh khung mặc định (thẻ VinClub Member), build.py nhúng từ src/template-vinclub.webp
+  var BUILTIN_SRC = '/*BUILTIN_SRC*/';
+  var BUILTIN_VER = 2;
   var KEYS = ['qr', 'bank_short_name', 'account_name', 'account_number', 'content', 'amount'];
   var LABEL = { qr: 'Mã QR', bank_short_name: 'Ngân hàng', account_name: 'Chủ TK', account_number: 'STK', content: 'Nội dung', amount: 'Số tiền' };
 
@@ -117,42 +119,17 @@
   /* ---------- built-in template ---------- */
   function builtinLayout() {
     return {
-      qr: { box: [80, 210, 460, 460], clear: 'fill', quiet: 2, fg: '#000000', bg: '#FFFFFF', show: true },
+      ver: BUILTIN_VER,
+      qr: { box: [548, 56, 372, 372], clear: 'none', quiet: 2, fg: '#000000', bg: '#FFFFFF', show: true },
       fields: {
-        bank_short_name: { box: [600, 226, 540, 60], clear: 'fill', size: 44, bold: true, color: '#12355B', align: 'left', upper: false, prefix: '', show: true },
-        account_name: { box: [600, 306, 540, 70], clear: 'fill', size: 50, bold: true, color: '#142033', align: 'left', upper: true, prefix: '', show: true },
-        account_number: { box: [600, 396, 540, 60], clear: 'fill', size: 42, bold: false, color: '#142033', align: 'left', upper: false, prefix: 'STK: ', show: true },
-        content: { box: [600, 476, 540, 54], clear: 'fill', size: 34, bold: false, color: '#4A5568', align: 'left', upper: false, prefix: 'Nội dung: ', show: true },
-        amount: { box: [600, 550, 540, 54], clear: 'fill', size: 36, bold: true, color: '#B4471C', align: 'left', upper: false, prefix: 'Số tiền: ', show: true }
+        bank_short_name: { box: [64, 1240, 849, 50], clear: 'none', size: 40, bold: true, color: '#9FE7E4', align: 'left', upper: false, prefix: '', show: true },
+        account_name: { box: [64, 1296, 849, 62], clear: 'none', size: 52, bold: true, color: '#FFFFFF', align: 'left', upper: true, prefix: '', show: true },
+        account_number: { box: [64, 1364, 849, 50], clear: 'none', size: 40, bold: false, color: '#FFFFFF', align: 'left', upper: false, prefix: 'STK: ', show: true },
+        content: { box: [64, 1420, 849, 44], clear: 'none', size: 32, bold: false, color: '#D6F2F2', align: 'left', upper: false, prefix: 'Nội dung: ', show: true },
+        amount: { box: [64, 1470, 849, 48], clear: 'none', size: 36, bold: true, color: '#FFD27A', align: 'left', upper: false, prefix: 'Số tiền: ', show: true }
       }
     };
   }
-
-  function drawBuiltinImage() {
-    var c = document.createElement('canvas'); c.width = 1200; c.height = 760;
-    var x = c.getContext('2d');
-    x.fillStyle = '#F7FAFC'; x.fillRect(0, 0, 1200, 760);
-    x.fillStyle = '#12355B'; x.fillRect(0, 0, 1200, 150);
-    x.fillStyle = '#2E9C95'; x.fillRect(0, 150, 1200, 8);
-    x.fillStyle = '#FFFFFF'; x.font = '700 42px "Be Vietnam Pro", sans-serif'; x.textBaseline = 'alphabetic';
-    x.fillText('THẺ CHUYỂN KHOẢN', 80, 92);
-    x.font = '500 24px "Be Vietnam Pro", sans-serif'; x.textAlign = 'right'; x.fillStyle = '#BFD3E6';
-    x.fillText('Quét bằng ứng dụng ngân hàng bất kỳ', 1120, 90);
-    x.textAlign = 'left';
-    roundRect(x, 64, 194, 492, 492, 24); x.fillStyle = '#FFFFFF'; x.fill();
-    x.strokeStyle = '#D5DCE6'; x.lineWidth = 2; x.stroke();
-    var old = OLD_EXAMPLE + V.crc16(OLD_EXAMPLE);
-    drawQR(x, old, [80, 210, 460, 460], { quiet: 2, fg: '#000000', bg: '#FFFFFF' });
-    x.fillStyle = '#142033';
-    x.font = '700 44px "Be Vietnam Pro", sans-serif'; x.fillText('Vietcombank', 600, 270);
-    x.font = '700 50px "Be Vietnam Pro", sans-serif'; x.fillText('NGUYEN VAN A', 600, 358);
-    x.font = '400 42px "Be Vietnam Pro", sans-serif'; x.fillText('STK: 0123456789', 600, 440);
-    x.font = '400 34px "Be Vietnam Pro", sans-serif'; x.fillStyle = '#4A5568'; x.fillText('Nội dung: THANH TOAN', 600, 515);
-    x.fillStyle = '#D5DCE6'; x.fillRect(600, 650, 520, 2);
-    x.fillStyle = '#5B6880'; x.font = '500 26px "Be Vietnam Pro", sans-serif'; x.fillText('Cảm ơn quý khách!', 600, 700);
-    return c.toDataURL('image/png');
-  }
-  function roundRect(x, l, t, w, h, r) { x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath(); }
 
   /* ---------- rendering ---------- */
   function drawQR(x, payload, box, o) {
@@ -554,10 +531,11 @@
     S.qr = V.parse(EXAMPLE, { strictCrc: true });
     renderInfo();
 
-    var builtinSrc = drawBuiltinImage();
-    var builtin = { id: 'builtin', name: 'Khung mặc định', builtin: true, src: builtinSrc, layout: builtinLayout() };
+    var builtinSrc = BUILTIN_SRC;
+    var builtin = { id: 'builtin', name: 'VinClub Member', builtin: true, src: builtinSrc, layout: builtinLayout() };
     var saved = await dbAll();
-    saved.forEach(function (t) { if (t.id === 'builtin') { if (t.layout) builtin.layout = t.layout; } });
+    // chỉ dùng layout đã lưu nếu nó thuộc đúng phiên bản ảnh khung hiện tại
+    saved.forEach(function (t) { if (t.id === 'builtin') { if (t.layout && t.layout.ver === BUILTIN_VER) { builtin.layout = t.layout; if (t.name) builtin.name = t.name; } } });
     S.templates = [builtin].concat(saved.filter(function (t) { return t.id !== 'builtin' && t.src; }).sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }));
     builtin.thumb = await loadImage(builtinSrc).then(thumbOf);
     var last = store('svq-last');
