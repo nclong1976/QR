@@ -33,8 +33,10 @@
   --good: #4CC98A; --good-soft: #12321F; --warn: #F0B45A; --warn-soft: #3A2A10; --bad: #F28B82; --bad-soft: #3D1A17; --sel: #FF8A5C;
   color-scheme: dark; }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 15px; line-height: 1.5; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 48px; display: grid; gap: 16px; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: clip; overscroll-behavior-y: none; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 15px; line-height: 1.5; overflow-x: clip; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); padding-block: max(16px, env(safe-area-inset-top)) calc(48px + env(safe-area-inset-bottom)); display: grid; gap: 16px; }
 header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 header.top h1 { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
 header.top p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -43,8 +45,9 @@ header.top p { margin: 0; color: var(--muted); font-size: 13px; }
 @media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); align-items: start; } .preview-col { order: 2; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); } }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
 .preview-col { display: grid; gap: 10px; min-width: 0; }
-.stage { position: relative; background: repeating-conic-gradient(var(--sunken) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px; border-radius: var(--r); border: 1px solid var(--line); overflow: hidden; touch-action: none; }
-.stage canvas { display: block; width: 100%; height: auto; }
+.stage { position: relative; background: repeating-conic-gradient(var(--sunken) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px; border-radius: var(--r); border: 1px solid var(--line); overflow: hidden; touch-action: pan-y; width: fit-content; max-width: 100%; margin-inline: auto; }
+.stage.editing { touch-action: none; }
+.stage canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: min(58vh, 58svh); }
 #overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 .badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--sunken); color: var(--muted); }
@@ -112,7 +115,21 @@ h2 { font-size: 15px; margin: 0; font-weight: 700; }
 .verify b { display: block; }
 .verify small { color: inherit; opacity: .85; }
 hr.sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
-@media (prefers-reduced-motion: no-preference) { .btn, .chip, .tpl { transition: border-color .15s, background-color .15s; } }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chip, .tpl { transition: border-color .15s, background-color .15s, transform .12s; }
+  .btn:active, .chip:active, .tpl:active { transform: scale(.97); }
+  .tabs button { transition: background-color .2s, color .2s, box-shadow .2s; }
+  .panel.enter { animation: panel-in .28s cubic-bezier(.2, .7, .2, 1) both; }
+  .panel.enter.back { animation-name: panel-in-back; }
+  .status { transition: background-color .2s, color .2s; }
+}
+@keyframes panel-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@keyframes panel-in-back { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+/* điện thoại: thanh bước cố định ở trên khi cuộn; ô nhập 16px để iOS không tự phóng to màn hình */
+@media (max-width: 899px) {
+  .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; box-shadow: 0 0 0 4px var(--surface); }
+  input[type=text], input[type=number], select, textarea { font-size: 16px; }
+}
 </style>
 
 <div class="wrap">

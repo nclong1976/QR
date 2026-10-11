@@ -202,6 +202,7 @@
       return false;
     }
     S.qr = d; S.isExample = false; S.userName = ''; nameJob++;
+    updateHomeIcon(d.raw);
     $('nameIn').value = '';
     setStatus($('qrStatus'), 'ok', 'Đã đọc mã QR của ' + (d.bank_short_name || 'ngân hàng BIN ' + d.bank_bin) + '.');
     renderInfo(); render(true);
@@ -290,6 +291,20 @@
       }
     };
   }
+
+  // Biểu tượng khi "Thêm vào Màn hình chính" trên iPhone: dùng chính mã QR vừa quét.
+  function updateHomeIcon(payload) {
+    try {
+      var link = document.querySelector('link[rel="apple-touch-icon"]'); if (!link) return;
+      var c = document.createElement('canvas'); c.width = c.height = 180;
+      var x = c.getContext('2d');
+      x.fillStyle = '#0E6E6A'; x.fillRect(0, 0, 180, 180);
+      roundRect(x, 14, 14, 152, 152, 18); x.fillStyle = '#FFFFFF'; x.fill();
+      drawQR(x, payload, [24, 24, 132, 132], { quiet: 0, fg: '#102033', bg: '#FFFFFF' });
+      link.href = c.toDataURL('image/png');
+    } catch (e) {}
+  }
+  function roundRect(x, l, t, w, h, r) { x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath(); }
 
   /* ---------- rendering ---------- */
   function drawQR(x, payload, box, o) {
@@ -655,8 +670,20 @@
 
   /* ---------- tabs ---------- */
   function setTab(n) {
+    var prev = S.tab;
     S.tab = n;
     [1, 2, 3].forEach(function (i) { $('t' + i).setAttribute('aria-selected', String(i === n)); $('p' + i).hidden = i !== n; });
+    if (prev && prev !== n) {
+      var pn = $('p' + n); pn.classList.remove('enter', 'back'); void pn.offsetWidth;
+      pn.classList.add('enter'); if (n < prev) pn.classList.add('back');
+      // điện thoại: bước 2 cần thấy ảnh thẻ để kéo chỉnh; bước khác giữ thanh bước trong tầm mắt
+      if (innerWidth < 900) {
+        var tb = document.querySelector('.tabs').getBoundingClientRect();
+        if (n === 2) $('stage').scrollIntoView({ block: 'start' });
+        else if (tb.top > innerHeight * 0.6) document.querySelector('.tabs').parentNode.scrollIntoView({ block: 'start' });
+      }
+    }
+    $('stage').classList.toggle('editing', n === 2);
     ov.style.pointerEvents = n === 2 ? 'auto' : 'none';
     ov.style.cursor = n === 2 ? 'move' : 'default';
     drawOverlay();

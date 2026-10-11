@@ -12,6 +12,15 @@ tpl = base64.b64encode((src / "template-vinclub.webp").read_bytes()).decode("asc
 page = page.replace("/*BUILTIN_SRC*/", "data:image/webp;base64," + tpl)
 head = ('<!doctype html><html lang="vi"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+        # cài lên màn hình chính: biểu tượng mã QR, mở toàn màn hình như ứng dụng
+        '<link rel="manifest" href="manifest.webmanifest">'
+        '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">'
+        '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">'
+        '<meta name="theme-color" content="#0E6E6A">'
+        '<meta name="mobile-web-app-capable" content="yes">'
+        '<meta name="apple-mobile-web-app-capable" content="yes">'
+        '<meta name="apple-mobile-web-app-title" content="VietQR">'
+        '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
         '<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>\n')
 (pathlib.Path(__file__).parent / "index.html").write_text(head + page + "\n</body></html>\n", encoding="utf-8")
 if len(sys.argv) > 1:
