@@ -8,7 +8,7 @@
   var EXAMPLE = '00020101021238590010A0000007270129000697043701150027040706140960208QRIBFTTA530370454061500005802VN5914TRAN THI HUONG62080804ECUV6304336C';
   // Ảnh khung mặc định (thẻ VinClub Member), build.py nhúng từ src/template-vinclub.webp
   var BUILTIN_SRC = '/*BUILTIN_SRC*/';
-  var BUILTIN_VER = 2;
+  var BUILTIN_VER = 3;
   var KEYS = ['qr', 'bank_short_name', 'account_name', 'account_number', 'content', 'amount'];
   var LABEL = { qr: 'Mã QR', bank_short_name: 'Ngân hàng', account_name: 'Chủ TK', account_number: 'STK', content: 'Nội dung', amount: 'Số tiền' };
 
@@ -120,13 +120,13 @@
   function builtinLayout() {
     return {
       ver: BUILTIN_VER,
-      qr: { box: [548, 56, 372, 372], clear: 'none', quiet: 2, fg: '#000000', bg: '#FFFFFF', show: true },
+      qr: { box: [248, 420, 480, 480], clear: 'none', quiet: 2, fg: '#000000', bg: '#FFFFFF', show: true },
       fields: {
-        bank_short_name: { box: [64, 1240, 849, 50], clear: 'none', size: 40, bold: true, color: '#9FE7E4', align: 'left', upper: false, prefix: '', show: true },
-        account_name: { box: [64, 1296, 849, 62], clear: 'none', size: 52, bold: true, color: '#FFFFFF', align: 'left', upper: true, prefix: '', show: true },
-        account_number: { box: [64, 1364, 849, 50], clear: 'none', size: 40, bold: false, color: '#FFFFFF', align: 'left', upper: false, prefix: 'STK: ', show: true },
-        content: { box: [64, 1420, 849, 44], clear: 'none', size: 32, bold: false, color: '#D6F2F2', align: 'left', upper: false, prefix: 'Nội dung: ', show: true },
-        amount: { box: [64, 1470, 849, 48], clear: 'none', size: 36, bold: true, color: '#FFD27A', align: 'left', upper: false, prefix: 'Số tiền: ', show: true }
+        bank_short_name: { box: [138, 972, 701, 46], clear: 'none', size: 36, bold: true, color: '#9FE7E4', align: 'center', upper: false, prefix: '', show: true },
+        account_name: { box: [138, 1026, 701, 58], clear: 'none', size: 48, bold: true, color: '#FFFFFF', align: 'center', upper: true, prefix: '', show: true },
+        account_number: { box: [138, 1092, 701, 46], clear: 'none', size: 38, bold: false, color: '#FFFFFF', align: 'center', upper: false, prefix: 'STK: ', show: true },
+        content: { box: [138, 1146, 701, 40], clear: 'none', size: 30, bold: false, color: '#D6F2F2', align: 'center', upper: false, prefix: 'Nội dung: ', show: true },
+        amount: { box: [138, 1194, 701, 46], clear: 'none', size: 34, bold: true, color: '#FFD27A', align: 'center', upper: false, prefix: 'Số tiền: ', show: true }
       }
     };
   }

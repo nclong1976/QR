@@ -19,7 +19,7 @@ Quét/tải ảnh mã **VietQR (EMVCo/NAPAS)**, bóc tách thông tin tài kho�
 Bật GitHub Pages để có link dùng trên điện thoại: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/ (root)`** → mở `https://nclong1976.github.io/QR/web/`.
 
 Sửa mã nguồn trong `web/src/` rồi chạy `python web/build.py` để ghép lại `web/index.html`.
-Khung mặc định là thẻ VinClub Member (`web/src/template-vinclub.webp`, ô mã QR góc trên phải, thông tin ở dải dưới); `build.py` nhúng ảnh này vào `index.html`.
+Khung mặc định là thẻ VinClub Member (`web/src/template-vinclub.webp`, mã QR ở giữa thẻ, thông tin ngay bên dưới mã QR); `build.py` nhúng ảnh này vào `index.html`.
 
 ## Cấu trúc repo
 
