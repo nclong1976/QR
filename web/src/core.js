@@ -99,6 +99,41 @@
     };
   }
 
+
+  /* ---------- đoán tên chủ tài khoản từ chữ OCR trên ảnh ---------- */
+  function fold(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[đĐ]/g, function (c) { return c === 'đ' ? 'd' : 'D'; })
+      .toUpperCase().replace(/[|]/g, 'I').replace(/\s+/g, ' ').trim();
+  }
+  var NAME_LABEL = /^(?:CHU\s*TAI\s*KHOAN|TEN\s*TAI\s*KHOAN|TEN\s*CHU\s*TAI\s*KHOAN|CHU\s*TK|TEN\s*TK|TEN\s*NGUOI\s*NHAN|NGUOI\s*NHAN|NGUOI\s*THU\s*HUONG|THU\s*HUONG|DON\s*VI\s*THU\s*HUONG|ACCOUNT\s*NAME|ACCOUNT\s*HOLDER|BENEFICIARY(?:\s*NAME)?|HO\s*(?:VA\s*)?TEN|TEN|NAME)\b\s*[:.\-]?\s*/;
+  var NOT_NAME = /\b(?:NGAN\s*HANG|BANK|VIETQR|NAPAS|QR|STK|SO\s*TAI\s*KHOAN|TAI\s*KHOAN|CHUYEN\s*KHOAN|THANH\s*TOAN|NOI\s*DUNG|SO\s*TIEN|QUET\s*MA|MA\s*QR|VND|CHI\s*NHANH|CN|PGD|HOTLINE|WEBSITE|WWW|COM|VN|MEMBER|CARD|CAM\s*ON|XIN|VUI\s*LONG|SCAN|PAY|NAPAS247|MOMO|ZALOPAY|VNPAY)\b/;
+  var SURNAMES = ' NGUYEN TRAN LE PHAM HOANG HUYNH PHAN VU VO DANG BUI DO HO NGO DUONG LY TRUONG DINH DAO LAM MAI TRINH LUONG CAO TA HA VUONG TRIEU CHU KIEU QUACH TONG LUU THAI TANG LA DIEP KHUC MAC TO TIEU VI THACH CONG LUC DOAN LU NGHIEM HUA KHONG GIANG PHUNG TIET LAI LUONG ';
+  // lines: các dòng chữ OCR; ctx: { account_number, content, bank_short_name }. Trả về tên IN HOA không dấu, hoặc null.
+  function guessAccountName(lines, ctx) {
+    ctx = ctx || {};
+    var acct = String(ctx.account_number || ''), content = fold(ctx.content), bank = fold(ctx.bank_short_name);
+    var bankWords = Object.keys(BANKS).map(function (k) { return fold(BANKS[k][0]).replace(/\s+/g, ''); });
+    var L = (lines || []).map(function (raw) { return { raw: String(raw || ''), f: fold(raw) }; }).filter(function (l) { return l.f; });
+    var best = null;
+    L.forEach(function (l, i) {
+      var text = l.f, score = 0;
+      var m = text.match(NAME_LABEL);
+      if (m) { text = text.slice(m[0].length); score += 4; }
+      else if (i > 0 && NAME_LABEL.test(L[i - 1].f) && L[i - 1].f.replace(NAME_LABEL, '').length < 3) score += 3;
+      text = text.replace(/^[^A-Z]+|[^A-Z]+$/g, '').replace(/\s+/g, ' ');
+      if (!/^[A-Z]+(?: [A-Z]+){1,6}$/.test(text) || text.length < 5 || text.length > 40) return;
+      if (NOT_NAME.test(text) || (content && text === content) || (bank && text.indexOf(bank) >= 0)) return;
+      var words = text.split(' ');
+      if (words.some(function (w) { return bankWords.indexOf(w) >= 0; })) return;
+      if (words.some(function (w) { return w.length > 7; })) return;
+      if (SURNAMES.indexOf(' ' + words[0] + ' ') >= 0) score += 2;
+      if (acct) for (var d = -2; d <= 2; d++) { var n = L[i + d]; if (d && n && n.raw.replace(/\D/g, '').indexOf(acct) >= 0) { score += 2; break; } }
+      if (l.raw.replace(/[^A-Za-zÀ-ỹ]/g, '') === l.raw.replace(/[^A-Za-zÀ-ỹ]/g, '').toUpperCase()) score += 1;
+      if (score >= 2 && (!best || score > best.score)) best = { name: text, score: score };
+    });
+    return best ? best.name : null;
+  }
+
   function buildVietQR(d) {
     var bene = tlv('00', d.bank_bin) + tlv('01', d.account_number);
     var mai = tlv('00', NAPAS_GUID) + tlv('01', bene) + tlv('02', d.service === 'card' ? 'QRIBFTTC' : 'QRIBFTTA');
@@ -111,5 +146,5 @@
     return s + crc16(s);
   }
 
-  root.VietQR = { BANKS: BANKS, crc16: crc16, parseTLV: parseTLV, parse: parseVietQR, build: buildVietQR, Error: VietQRError };
+  root.VietQR = { BANKS: BANKS, crc16: crc16, parseTLV: parseTLV, parse: parseVietQR, build: buildVietQR, guessAccountName: guessAccountName, fold: fold, Error: VietQRError };
 })(typeof window !== 'undefined' ? window : globalThis);

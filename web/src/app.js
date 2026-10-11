@@ -116,6 +116,81 @@
     return null;
   }
 
+  /* ---------- tên chủ tài khoản khi mã QR không có tên ---------- */
+  // Nhớ tên theo ngân hàng + số tài khoản, chỉ lưu trên thiết bị này.
+  function nameKey(d) { return d.bank_bin + ':' + d.account_number; }
+  function savedNames() { try { return JSON.parse(store('svq-names') || '{}') || {}; } catch (e) { return {}; } }
+  function rememberName(d, name) {
+    if (!d || d.account_name) return;
+    var m = savedNames(); name = String(name || '').trim();
+    if (name) m[nameKey(d)] = name.slice(0, 40); else delete m[nameKey(d)];
+    store('svq-names', JSON.stringify(m));
+  }
+  function setUserName(name) { S.userName = name; $('nameIn').value = name; render(true); }
+
+  // Tesseract.js (miễn phí, chạy trong trình duyệt) chỉ tải khi cần đọc chữ trên ảnh.
+  var TESS_VER = '7.0.0', tessP = null;
+  function loadTesseract() {
+    if (tessP) return tessP;
+    var cdns = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
+    function tryCdn(i) {
+      if (i >= cdns.length) return Promise.resolve(null);
+      return new Promise(function (res) {
+        var sc = document.createElement('script'), done = false;
+        var t = setTimeout(function () { if (!done) { done = true; res(false); } }, 20000);
+        sc.src = cdns[i] + 'tesseract.js@' + TESS_VER + '/dist/tesseract.min.js';
+        sc.onload = function () { if (!done) { done = true; clearTimeout(t); res(!!window.Tesseract); } };
+        sc.onerror = function () { if (!done) { done = true; clearTimeout(t); res(false); } };
+        document.head.appendChild(sc);
+      }).then(function (ok) {
+        if (!ok) return tryCdn(i + 1);
+        var b = cdns[i];
+        return Tesseract.createWorker('vie', 1, {
+          workerPath: b + 'tesseract.js@' + TESS_VER + '/dist/worker.min.js',
+          corePath: b + 'tesseract.js-core@' + TESS_VER,
+          langPath: b + '@tesseract.js-data/vie/4.0.0_best_int'
+        }).catch(function () { return tryCdn(i + 1); });
+      });
+    }
+    tessP = tryCdn(0).then(function (w) { if (!w) tessP = null; return w; });
+    return tessP;
+  }
+
+  // Đọc chữ trên ảnh rồi đoán dòng nào là tên chủ tài khoản.
+  async function nameFromImage(img, d) {
+    var w = await loadTesseract(); if (!w) return null;
+    var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    var k = Math.min(2, 1800 / Math.max(W, H)), c = document.createElement('canvas');
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    var x = c.getContext('2d'); x.filter = 'grayscale(1) contrast(1.2)'; x.drawImage(img, 0, 0, c.width, c.height);
+    var r = await w.recognize(c);
+    var lines = String(r && r.data && r.data.text || '').split(/\n+/);
+    return V.guessAccountName(lines, d);
+  }
+
+  var nameJob = 0;
+  async function fillMissingName(img) {
+    var d = S.qr, job = ++nameJob;
+    if (!d || d.account_name) return;
+    var saved = savedNames()[nameKey(d)];
+    if (saved) {
+      setUserName(saved);
+      setStatus($('qrStatus'), 'ok', 'Đã đọc mã QR của ' + (d.bank_short_name || 'BIN ' + d.bank_bin) + '. Mã không có tên chủ tài khoản; đã điền tên dùng lần trước cho tài khoản này: ' + saved + '.');
+      return;
+    }
+    if (!img) { setStatus($('qrStatus'), 'info', 'Mã QR này không có tên chủ tài khoản. Hãy nhập tên vào ô bên dưới.'); return; }
+    setStatus($('qrStatus'), 'info', 'Mã QR không có tên chủ tài khoản. Đang đọc tên từ chữ trên ảnh (lần đầu cần tải bộ đọc chữ)…');
+    var name = null;
+    try { name = await nameFromImage(img, d); } catch (e) {}
+    if (job !== nameJob || S.qr !== d || S.userName.trim()) return; // đã quét mã khác hoặc người dùng đã tự nhập
+    if (name) {
+      setUserName(name); rememberName(d, name);
+      setStatus($('qrStatus'), 'warn', 'Đã đọc tên từ chữ trên ảnh: ' + name + '. Tên này không lấy từ ngân hàng, hãy kiểm tra và sửa nếu sai.');
+    } else {
+      setStatus($('qrStatus'), 'info', 'Mã QR không có tên chủ tài khoản và không thấy tên in trên ảnh. Hãy nhập tên vào ô bên dưới.');
+    }
+  }
+
   function acceptPayload(text) {
     var d;
     try { d = V.parse(text, { strictCrc: true }); }
@@ -126,7 +201,7 @@
       setStatus($('qrStatus'), 'err', msg);
       return false;
     }
-    S.qr = d; S.isExample = false; S.userName = '';
+    S.qr = d; S.isExample = false; S.userName = ''; nameJob++;
     $('nameIn').value = '';
     setStatus($('qrStatus'), 'ok', 'Đã đọc mã QR của ' + (d.bank_short_name || 'ngân hàng BIN ' + d.bank_bin) + '.');
     renderInfo(); render(true);
@@ -156,7 +231,7 @@
       }
       var data = await scanImage(img, function () { setStatus($('qrStatus'), 'info', 'Đang đọc kỹ hơn (lần đầu cần tải bộ đọc nâng cao)…'); });
       if (!data) { setStatus($('qrStatus'), 'err', 'Không tìm thấy mã QR trong ảnh. Hãy chụp gần hơn, đủ sáng, để mã nằm trọn và thẳng trong khung hình, hoặc chụp màn hình mã QR.'); return; }
-      acceptPayload(data);
+      if (acceptPayload(data)) fillMissingName(img);
     } finally { URL.revokeObjectURL(url); scanning = false; }
   }
 
@@ -647,8 +722,8 @@
     var f = ev.clipboardData && imageFrom(ev.clipboardData.items); if (!f) return;
     ev.preventDefault(); setTab(1); handleQRFile(f);
   });
-  $('payloadBtn').onclick = function () { var v = $('payloadIn').value.trim(); if (v) acceptPayload(v); };
-  $('nameIn').oninput = function () { S.userName = $('nameIn').value; render(false); };
+  $('payloadBtn').onclick = function () { var v = $('payloadIn').value.trim(); if (v && acceptPayload(v)) fillMissingName(null); };
+  $('nameIn').oninput = function () { S.userName = $('nameIn').value; nameJob++; rememberName(S.isExample ? null : S.qr, S.userName); render(false); };
   $('tplIn').onchange = onTplFile;
   $('saveTpl').onclick = saveTpl;
   $('renameTpl').onclick = function () { var f = $('renameField'); f.hidden = !f.hidden; $('renameIn').value = S.tpl.name; if (!f.hidden) $('renameIn').focus(); };
