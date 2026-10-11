@@ -12,6 +12,14 @@ Quét/tải ảnh mã **VietQR (EMVCo/NAPAS)**, bóc tách thông tin tài kho�
 - **Dynamic Template Replacer:** khung mẫu có layout JSON (vùng QR/STK/Tên/Nội dung) → xóa nội dung cũ (`fill` / `inpaint`) → render QR chuẩn từ payload + chữ tự co vừa box → **decode lại ảnh đầu ra để xác minh** trước khi trả.
 - Text luôn sinh từ dữ liệu QR, không cho nhập STK/BIN tự do — chống tạo thẻ "chữ một đằng, tiền về một nẻo".
 
+## Web app (chạy ngay, không cần server)
+
+`web/index.html` là bản ứng dụng chạy hoàn toàn trong trình duyệt: chụp/chọn ảnh mã QR, tải khung (tự tìm mã QR cũ), kéo chỉnh vị trí, đọc lại mã trên ảnh để kiểm tra, rồi xuất PNG. Khung được lưu trên thiết bị (IndexedDB).
+
+Bật GitHub Pages để có link dùng trên điện thoại: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/ (root)`** → mở `https://nclong1976.github.io/QR/web/`.
+
+Sửa mã nguồn trong `web/src/` rồi chạy `python web/build.py` để ghép lại `web/index.html`.
+
 ## Cấu trúc repo
 
 ```
@@ -19,6 +27,10 @@ Quét/tải ảnh mã **VietQR (EMVCo/NAPAS)**, bóc tách thông tin tài kho�
 ├── docs/
 │   ├── ARCHITECTURE.md        # Thiết kế đầy đủ: kiến trúc, EMVCo, pipeline, API, UI/UX, bảo mật, lộ trình
 │   └── images/                # Sơ đồ kiến trúc, pipeline, ảnh demo
+├── web/
+│   ├── index.html             # Web app 1 file (bản build)
+│   ├── build.py               # Ghép web/src → index.html
+│   └── src/                   # core.js (parse/build VietQR), app.js, page.html
 └── backend/
     ├── vietqr_service.py      # FastAPI + OpenCV + Pillow (parser, builder, renderer, API)
     ├── examples/layout_demo.json
