@@ -20,6 +20,7 @@ Bật GitHub Pages để có link dùng trên điện thoại: **Settings → Pa
 
 Sửa mã nguồn trong `web/src/` rồi chạy `python web/build.py` để ghép lại `web/index.html`.
 Thư viện đọc/tạo mã QR (`web/vendor/`) được nhúng thẳng vào `index.html`, nên app quét được cả khi CDN bị chặn; bộ đọc nâng cao ZXing chỉ tải khi ảnh khó đọc.
+Khi mã QR không chứa tên chủ tài khoản, app đọc tên in trên ảnh bằng Tesseract.js (miễn phí, chạy trong trình duyệt, chỉ tải khi cần) và nhớ tên theo số tài khoản trên thiết bị. Tên này không do ngân hàng xác thực nên luôn gắn nhãn "chưa xác thực".
 Khung mặc định là thẻ VinClub Member (`web/src/template-vinclub.webp`, mã QR ở giữa thẻ, thông tin ngay bên dưới mã QR); `build.py` nhúng ảnh này vào `index.html`.
 
 ## Cấu trúc repo
